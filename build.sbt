@@ -21,7 +21,6 @@ import sbtassembly.AssemblyPlugin.autoImport._
 import com.typesafe.sbt.SbtSite.SiteKeys._
 import com.typesafe.sbt.SbtGit.GitKeys.gitRemoteRepo
 import sbtunidoc.Plugin.UnidocKeys._
-import com.trueaccord.scalapb.{ScalaPbPlugin => PB}
 
 val dataflowSdkVersion = "1.8.0"
 val algebirdVersion = "0.12.2"
@@ -38,17 +37,16 @@ val guavaVersion = "19.0"
 val hadoopVersion = "2.7.2"
 val hamcrestVersion = "1.3"
 val hbaseVersion = "1.0.2"
-val jacksonScalaModuleVersion = "2.8.3"
+val jacksonScalaModuleVersion = "2.8.4"
 val javaLshVersion = "0.10"
 val jodaConvertVersion = "1.8.1"
 val junitVersion = "4.12"
 val junitInterfaceVersion = "0.11"
 val nettyTcNativeVersion = "1.1.33.Fork18"
-val protobufGenericVersion = "0.1.1"
-val scalaCheckVersion = "1.13.3"
+val protobufGenericVersion = "0.2.0"
+val scalaCheckVersion = "1.13.4"
 val scalaMacrosVersion = "2.1.0"
 val scalaMeterVersion = "0.7"
-val scalapbVersion = "0.5.19" // inner protobuf-java version must match beam/dataflow-sdk one
 val scalaTestVersion = "3.0.0"
 val slf4jVersion = "1.7.21"
 
@@ -59,8 +57,8 @@ val java8 = sys.props("java.version").startsWith("1.8.")
 val commonSettings = Sonatype.sonatypeSettings ++ assemblySettings ++ Seq(
   organization       := "com.spotify",
 
-  scalaVersion       := "2.11.8",
-  crossScalaVersions := Seq("2.11.8"),
+  scalaVersion       := "2.12.0",
+  crossScalaVersions := Seq("2.11.8", "2.12.0"),
   scalacOptions                   ++= Seq("-target:jvm-1.8", "-deprecation", "-feature", "-unchecked"),
   scalacOptions in (Compile, doc) ++= Seq("-groups", "-skip-packages", "com.google"),
   javacOptions                    ++= Seq("-source", "1.8", "-target", "1.8", "-Xlint:unchecked"),
@@ -241,7 +239,7 @@ lazy val scioBigQuery: Project = Project(
     "org.slf4j" % "slf4j-api" % slf4jVersion,
     "org.slf4j" % "slf4j-simple" % slf4jVersion % "test,it",
     "org.scalatest" %% "scalatest" % scalaTestVersion % "test,it",
-    "com.github.alexarchambault" %% "scalacheck-shapeless_1.13" % "1.1.1" % "test"
+    "com.github.alexarchambault" %% "scalacheck-shapeless_1.13" % "1.1.3" % "test"
   ),
   libraryDependencies <+= (scalaVersion)("org.scala-lang" % "scala-reflect" % _),
   addCompilerPlugin(paradiseDependency)
@@ -298,20 +296,16 @@ lazy val scioSchemas: Project = Project(
   "scio-schemas",
   file("scio-schemas")
 ).settings(
-  commonSettings ++ sbtavro.SbtAvro.avroSettings ++ noPublishSettings ++ PB.protobufSettings,
+  commonSettings ++ sbtavro.SbtAvro.avroSettings ++ noPublishSettings,
   version in sbtavro.SbtAvro.avroConfig := avroVersion, // Set avro version used by sbt-avro
   description := "Avro/Proto schemas for testing",
-  libraryDependencies ++= Seq(
-    "com.github.os72" % "protoc-jar" % "3.0.0-b1"
-  ),
   // suppress warnings
   sources in doc in Compile := List(),
   javacOptions := Seq("-source", "1.8", "-target", "1.8"),
   compileOrder := CompileOrder.JavaThenScala,
-  PB.javaConversions in PB.protobufConfig := true,
-  PB.grpc := false,
-  PB.runProtoc in PB.protobufConfig := (args =>
-    com.github.os72.protocjar.Protoc.runProtoc("-v300" +: args.toArray)
+  PB.targets in Compile := Seq(
+    PB.gens.java -> (sourceManaged in Compile).value,
+    scalapb.gen(grpc=false, javaConversions=true) -> (sourceManaged in Compile).value
   )
 )
 
