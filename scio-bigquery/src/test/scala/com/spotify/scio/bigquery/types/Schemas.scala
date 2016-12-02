@@ -59,4 +59,9 @@ object Schemas {
   case class RepeatedNested(required: List[Required],
                             optional: List[Optional],
                             repeated: List[Repeated])
+
+  // descriptions
+  case class RecordWithDesc(@Description("Username") name: String,
+                            @Description("User email") email: String)
+
 }
